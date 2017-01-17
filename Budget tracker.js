@@ -23,11 +23,12 @@ function main() {
       Logger.log('Explicitly shared : ' + budget.isExplicitlyShared());
       Logger.log('Associated campaigns : ' +
           budgetCampaignIterator.totalNumEntities());
-      Logger.log('Details');
-      Logger.log('=======');
+      var stats = campaign.getStatsFor('YESTERDAY');
+      Logger.log(stats.getCost() + ' cost');
+      Logger.log('===NEXT===');
 
       // append a row to the defined spreadsheet
-      sheet.appendRow([campaign.getName(), budget.getAmount(), budget.getDeliveryMethod(), budget.isExplicitlyShared(), budgetCampaignIterator.totalNumEntities()]);
+      sheet.appendRow([campaign.getName(), budget.getAmount(), stats.getCost(), budget.getDeliveryMethod(), budget.isExplicitlyShared(), budgetCampaignIterator.totalNumEntities()]);
 
     }
   }
