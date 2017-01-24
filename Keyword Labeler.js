@@ -47,7 +47,10 @@ var CONFIG = {
   // This should be a copy of https://goo.gl/uhK6nS.
   SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1wbNuaaIE-u_cm2UNgxQhUZY3_i0g_Pz0yHbsfon8x6k/edit',
 
-  SPREADSHEET_NAME: 'CPBENL keyword labels applied',
+  SPREADSHEET_NAME: AdWordsApp.currentAccount().getName() + ' keyword labels applied',
+
+  // create spreadsheet and send mails if TRUE
+  NOTIFY: 0,
 
   // Array of addresses to be alerted via email if labels are applied.
   RECIPIENT_EMAILS: [
@@ -122,7 +125,7 @@ function processAccount() {
  *     and keyword text that the label was applied to.
  */
 function processResults(changes) {
-  if (changes.length > 0) {
+  if (changes.length > 0 && CONFIG.NOTIFY = 1) {
     var spreadsheetUrl = saveToSpreadsheet(changes, CONFIG.RECIPIENT_EMAILS);
     sendEmail(spreadsheetUrl, CONFIG.RECIPIENT_EMAILS);
   } else {
@@ -303,3 +306,4 @@ function sendEmail(spreadsheetUrl, emails) {
       'AdWords account(s). See ' +
       spreadsheetUrl + ' for details.');
 }
+
