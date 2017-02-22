@@ -1,2 +1,2 @@
 Logger.log("de test is gelukt");
-Logger.log("aaawww yeahhhhh");
+Logger.log("aaawww yeahhhhh test 2");
