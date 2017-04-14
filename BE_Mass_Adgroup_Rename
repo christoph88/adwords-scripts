@@ -1,0 +1,42 @@
+function updateAccountsInSeries() {
+  // You can use this approach when you have only minimal processing to
+  // perform in each of your client accounts.
+
+  // Select the accounts to be processed.
+  var accountIterator = MccApp.accounts()
+      .withCondition("LabelNames CONTAINS 'BE'")
+      .get();
+
+  // Save the MCC account, to switch back later.
+  var mccAccount = AdWordsApp.currentAccount();
+
+  while (accountIterator.hasNext()) {
+    var account = accountIterator.next();
+
+    // Switch to the account you want to process.
+    MccApp.select(account);
+
+  // AdWordsApp.adGroups() will return all ad groups that are not removed by
+  // default.
+  var adGroupIterator = AdWordsApp.adGroups()
+  .withCondition('Name CONTAINS "City"')
+  .get();
+    
+    
+  Logger.log('Total adGroups found : ' + adGroupIterator.totalNumEntities());
+  while (adGroupIterator.hasNext()) {
+    var adGroup = adGroupIterator.next();
+    Logger.log('AdGroup Name: ' + adGroup.getName());
+    
+    // set new campaign names by replacing current name using a regex.
+    adGroup.setName(adGroup.getName().replace(/.*City\s?(_|-)?\s?/i, "City_"));
+  }
+
+
+  }
+  
+}
+
+function main() {
+  updateAccountsInSeries()
+}
