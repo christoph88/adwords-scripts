@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /**
- * @name Keyword Labeler
+ * @name Keyword Labeler - Manager Accounts
  *
  * @overview The Keyword Labeler script labels keywords based on rules that
  *     you define. For example, you can create a rule to label keywords that
@@ -26,7 +26,7 @@
  *     different performance thresholds versus "non-branded" keywords.
  *     Finally, the script sends an email linking to a spreadsheet when new
  *     keywords have been labeled. See
- *     https://developers.google.com/adwords/scripts/docs/solutions/labels
+ *     https://developers.google.com/adwords/scripts/docs/solutions/mccapp-labels
  *     for more details.
  *
  * @author AdWords Scripts Team [adwords-scripts@googlegroups.com]
@@ -45,14 +45,16 @@
 var CONFIG = {
   // URL of the spreadsheet template.
   // This should be a copy of https://goo.gl/uhK6nS.
-  SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1wbNuaaIE-u_cm2UNgxQhUZY3_i0g_Pz0yHbsfon8x6k/edit',
-  SPREADSHEET_NAME: AdWordsApp.currentAccount().getName() + ' - keyword labels applied',
-  NOTIFY: 0,
+  SPREADSHEET_URL: 'YOUR_SPREADSHEET_URL',
 
   // Array of addresses to be alerted via email if labels are applied.
   RECIPIENT_EMAILS: [
-    'christoph.geypen@groupepvcp.com'
+    'YOUR_EMAIL_HERE'
   ],
+
+  // Label on the accounts to be processed.
+  // Leave blank to include all accounts.
+  ACCOUNT_LABEL: 'BE',
 
   // Selector conditions to apply for all rules.
   GLOBAL_CONDITIONS: [
@@ -63,7 +65,7 @@ var CONFIG = {
 
   // Default date range over which statistics fields are retrieved.
   // Used when fetching keywords if a rule doesn't specify a date range.
-  DEFAULT_DATE_RANGE: 'LAST_14_DAYS'
+  DEFAULT_DATE_RANGE: 'LAST_7_DAYS'
 };
 
 /**
@@ -80,24 +82,22 @@ var CONFIG = {
 var RULES = [
   {
     conditions: [
-      'Conversions = 0',
-      'Impressions > 100'
-    ]
-    ,labelName: 'performance - no direct conversions last 14 days'
-  }
-  ,{
-    conditions: [
-      'Conversions = 0',
-      'ClickAssistedConversions = 0',
-      'Impressions > 100'
-    ]
-    ,labelName: 'performance - no conversion last 14 days'
+      'ConvertedClicks = 0',
+      'Conversions = 0'
+    ],
+    labelName: 'NotConverting7d'
   }
 ];
 
 function main() {
-  var results = processAccount();
-  processResults(results);
+  var accountSelector = MccApp.accounts();
+
+  if (CONFIG.ACCOUNT_LABEL) {
+    accountSelector = accountSelector
+      .withCondition('LabelNames CONTAINS "' + CONFIG.ACCOUNT_LABEL + '"');
+  }
+
+  accountSelector.executeInParallel('processAccount', 'processResults');
 }
 
 /**
@@ -111,25 +111,28 @@ function processAccount() {
   ensureAccountLabels();
   var changes = applyLabels();
 
-  return changes;
+  return JSON.stringify(changes);
 }
 
 /**
  * Processes the results of the script.
  *
- * @param {Array.<Object>} changes An array of changes made, each having
- *     a customerId, campaign name, ad group name, label name,
- *     and keyword text that the label was applied to.
+ * @param {Array.<Object>} accountResults An array of changes made in
+ *     each account, each an array having a customerId, campaign name,
+ *     ad group name, label name, and keyword text that the label was applied
+ *     to.
  */
-function processResults(changes) {
-  if (changes.length > 0 ) {
-    if ( CONFIG.NOTIFY === 1 ) {
-      Logger.log('Saving log and sending notification e-mail.');
-      var spreadsheetUrl = saveToSpreadsheet(changes, CONFIG.RECIPIENT_EMAILS);
-      sendEmail(spreadsheetUrl, CONFIG.RECIPIENT_EMAILS);
-    } else {
-      Logger.log('Labels are applied.');
-    }
+function processResults(accountResults) {
+  var allResults = [];
+
+  for (var i = 0; i < accountResults.length; i++) {
+    allResults = allResults.concat(JSON.parse
+                                   (accountResults[i].getReturnValue()));
+  }
+
+  if (allResults.length > 0) {
+    var spreadsheetUrl = saveToSpreadsheet(allResults, CONFIG.RECIPIENT_EMAILS);
+    sendEmail(spreadsheetUrl, CONFIG.RECIPIENT_EMAILS);
   } else {
     Logger.log('No labels were applied.');
   }
@@ -232,18 +235,17 @@ function applyLabels() {
   for (var i = 0; i < RULES.length; i++) {
     var rule = RULES[i];
     var keywords = getKeywordsForRule(rule);
-    var labelName = rule.labelName;
 
     for (var j = 0; j < keywords.length; j++) {
       var keyword = keywords[j];
 
-      keyword.applyLabel(labelName);
+      keyword.applyLabel(rule.labelName);
 
       changes.push({
         customerId: customerId,
         campaignName: keyword.getCampaign().getName(),
         adGroupName: keyword.getAdGroup().getName(),
-        labelName: labelName,
+        labelName: rule.labelName,
         keywordText: keyword.getText(),
       });
     }
@@ -264,7 +266,7 @@ function applyLabels() {
  */
 function saveToSpreadsheet(changes, emails) {
   var template = SpreadsheetApp.openByUrl(CONFIG.SPREADSHEET_URL);
-  var spreadsheet = template.copy(CONFIG.SPREADSHEET_NAME);
+  var spreadsheet = template.copy('Keyword Labels Applied');
 
   // Make sure the spreadsheet is using the account's timezone.
   spreadsheet.setSpreadsheetTimeZone(AdWordsApp.currentAccount().getTimeZone());
