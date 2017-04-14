@@ -4,7 +4,11 @@ function updateAccountsInSeries() {
 
   // Select the accounts to be processed.
   var accountIterator = MccApp.accounts()
-      .withCondition("LabelNames CONTAINS 'BE'")
+      //.withCondition("LabelNames CONTAINS 'BE'")
+      .withIds([
+        //'665-'
+        //,'314-'
+      ])
       .get();
 
   // Save the MCC account, to switch back later.
@@ -18,14 +22,20 @@ function updateAccountsInSeries() {
 
     // Retrieve all campaigns to be paused.
     var campaignIterator = AdWordsApp.campaigns()
-        .withCondition("Name CONTAINS 'Month'")
+        //.withCondition("Name CONTAINS 'Season'")
         .get();
 
     while (campaignIterator.hasNext()) {
       var campaign = campaignIterator.next();
-      Logger.log('campaign %s to %s\nin account %s - %s', campaign.getName(), campaign.getName().replace(/_ /i, "_"),
-          account.getCustomerId(), account.getName());
-      //campaign.setName(campaign.getName().replace(/_ ?2017$/i, ""));
+      
+      // post info to logs
+      Logger.log('campaign %s to %s\nin account %s - %s'
+                 , campaign.getName(), campaign.getName().replace(/_ /i, "_"),
+                 account.getCustomerId(), account.getName()
+                );
+      
+      // set new campaign names by replacing current name using a regex.
+      campaign.setName(campaign.getName().replace(/^BE(NL|FR)_/i, campaign.getName().substring(0,4) + "_VN_"));
     }
   }
 }
