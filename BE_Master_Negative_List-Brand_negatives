@@ -297,7 +297,7 @@ function getLabelledCampaigns(labelText) {
   var campaignIds = {};
 
   if (labelText != '') {
-    var label = getLabel(labelText);
+    var label = labelText;
     var campaigns = AdWordsApp.campaigns()
                     .withCondition('Status in [ENABLED, PAUSED]')
                     .withCondition('Name CONTAINS "' + label + '"').get();
@@ -311,26 +311,6 @@ function getLabelledCampaigns(labelText) {
     campaignIds[campaign.getId()] = 1;
   }
   return campaignIds;
-}
-
-/**
- * Gets a label with the specified label text.
- *
- * @param {String} labelText The label text.
- *
- * @return {AdWordsApp.Label} The label text.
- */
-function getLabel(labelText) {
-  var labels = AdWordsApp.labels().withCondition(
-      "Name='" + labelText + "'").get();
-  if (labels.totalNumEntities() == 0) {
-    var message = Utilities.formatString('Label named %s is missing in your ' +
-        'account. Make sure the label exists in the account, and is applied ' +
-        'to campaigns and adgroups you wish to process.', labelText);
-    throw (message);
-  }
-
-  return labels.next();
 }
 
 /**
