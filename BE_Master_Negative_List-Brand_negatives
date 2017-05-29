@@ -39,7 +39,7 @@
  * The URL of the tracking spreadsheet. This should be a copy of
  * https://goo.gl/i4q728
  */
-var SPREADSHEET_URL = 'INSERT_SPREADSHEET_URL_HERE';
+var SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1y_v_jw8Xr9_V4TXJuzXKzoxTkvDKIqiPKCQrbfUWUWU/edit#gid=1369822905';
 
 /**
  * Keep track of the spreadsheet names for various criteria types, as well as
@@ -57,9 +57,8 @@ function main() {
   var config = readConfig();
 
   var accountSelector = MccApp.accounts();
-  if (config.customerids.length > 0) {
-    accountSelector.withIds(config.customerids);
-  }
+  accountSelector.withCondition("LabelNames CONTAINS '" + config.customerids + "'");
+
   accountSelector.executeInParallel('processAccounts', 'postProcess');
 }
 
