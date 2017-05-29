@@ -298,8 +298,9 @@ function getLabelledCampaigns(labelText) {
 
   if (labelText != '') {
     var label = getLabel(labelText);
-    var campaigns = label.campaigns().withCondition(
-        'Status in [ENABLED, PAUSED]').get();
+    var campaigns = AdWordsApp.campaigns()
+                    .withCondition('Status in [ENABLED, PAUSED]')
+                    .withCondition('Name CONTAINS "' + label + '"').get();
   } else {
     var campaigns = AdWordsApp.campaigns().withCondition(
         'Status in [ENABLED, PAUSED]').get();
