@@ -57,8 +57,7 @@ function main() {
   var config = readConfig();
 
   var accountSelector = MccApp.accounts();
-  Logger.log(config.customerids);
-  accountSelector.withCondition("LabelNames CONTAINS 'BE'");
+  accountSelector.withCondition("LabelNames CONTAINS '" + config.customerids + "'");
 
   accountSelector.executeInParallel('processAccounts', 'postProcess');
 }
