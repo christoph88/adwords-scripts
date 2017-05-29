@@ -57,7 +57,8 @@ function main() {
   var config = readConfig();
 
   var accountSelector = MccApp.accounts();
-  accountSelector.withCondition("LabelNames CONTAINS '" + config.customerids + "'");
+  Logger.log(config.customerids);
+  accountSelector.withCondition("LabelNames CONTAINS 'BE'");
 
   accountSelector.executeInParallel('processAccounts', 'postProcess');
 }
@@ -484,37 +485,11 @@ function readConfig() {
     'listname': {
     },
     'email': values[3][0],
-    'customerids': extractCustomerIds(values[4][0])
+    'customerids': values[4][0].trim()
   };
   config.listname[CriteriaType.KEYWORDS] = values[1][0];
   config.listname[CriteriaType.PLACEMENTS] = values[2][0];
   return config;
-}
-
-/**
- * Extracts customerIds from a comma separated list.
- *
- * @param {string} data the input.
- * @return {Array.<number>} A list of customer IDs.
- */
-function extractCustomerIds(data) {
-  var retval = [];
-
-  var splits = data.split(',');
-
-  for (var i = 0; i < splits.length; i++) {
-    var split = splits[i];
-    split = split.trim().replace(/-/g, '').replace(/^\s+|\s+$/g, '');
-    if (split) {
-      if (isNaN(split)) {
-        Logger.log('Invalid customer ID found in spreadsheet: ' + split);
-      } else {
-        var customerId = parseInt(split).toFixed(0);
-        retval.push(customerId);
-      }
-    }
-  }
-  return retval;
 }
 
 /**
