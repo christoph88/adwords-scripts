@@ -1,3 +1,4 @@
+// script to rename all adgroups of labelled acounts at once
 // log to this spreadsheet
 var SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1KzxwSwHKTrHLC4uTpvbubcsOPOHsut95EpjyGYU99mA/edit#gid=0';
 // Name of the specific sheet in the spreadsheet.
