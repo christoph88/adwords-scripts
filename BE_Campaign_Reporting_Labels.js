@@ -40,52 +40,52 @@ function updateAccountsInSeries() {
                 filter: '_DSA_',
                 label: 'CG_01_DSA'
             }, {
-                filter: '_COUNTRY_',
+                filter: '_COUNTRY',
                 label: 'CG_02_COUNTRY'
             }, {
-                filter: '_LASTMINUTE_',
+                filter: '_LASTMINUTE',
                 label: 'CG_02_LASTMINUTE'
             }, {
-                filter: '_PROMO_',
+                filter: '_PROMO',
                 label: 'CG_02_PROMO'
             }, {
-                filter: '_REGION_',
+                filter: '_REGION',
                 label: 'CG_02_REGION'
             }, {
-                filter: '_ACTIVITY_',
+                filter: '_ACTIVITY',
                 label: 'CG_02_ACTIVITY'
             }, {
-                filter: '_SEASONAL_',
+                filter: '_SEASONAL',
                 label: 'CG_02_SEASONAL'
             }, {
-                filter: '_CITY_',
+                filter: '_CITY',
                 label: 'CG_02_CITY'
             }, {
-                filter: '_TARGET_',
+                filter: '_TARGET',
                 label: 'CG_02_TARGET'
             }, {
-                filter: '_EVENTS_',
+                filter: '_EVENTS',
                 label: 'CG_02_EVENTS'
             }, {
-                filter: '_ATTRACTION_',
+                filter: '_ATTRACTION',
                 label: 'CG_02_ATTRACTION'
             }, {
-                filter: '_DURATION_',
+                filter: '_DURATION',
                 label: 'CG_02_DURATION'
             }, {
-                filter: '_HOLIDAY_',
+                filter: '_HOLIDAY',
                 label: 'CG_02_HOLIDAY'
             }, {
-                filter: '_DEPARTMENT_',
+                filter: '_DEPARTMENT',
                 label: 'CG_02_DEPARTMENT'
             }, {
-                filter: '_ACCOMMODATION_',
+                filter: '_ACCOMMODATION',
                 label: 'CG_02_ACCOMMODATION'
             }, {
-                filter: '_BRANDING_',
+                filter: '_BRANDING',
                 label: 'CG_02_BRANDING'
             }, {
-                filter: '_PARK_',
+                filter: '_PARK',
                 label: 'CG_02_PARK'
             }];
 
