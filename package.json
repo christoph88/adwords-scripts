@@ -1,0 +1,24 @@
+{
+  "name": "adwords-scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "BE_Account_report.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/christoph88/adwords-scripts.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/christoph88/adwords-scripts/issues"
+  },
+  "homepage": "https://github.com/christoph88/adwords-scripts#readme",
+  "devDependencies": {
+    "eslint": "^6.2.2",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
+  }
+}
