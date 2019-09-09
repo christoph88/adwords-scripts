@@ -1,5 +1,4 @@
 /*
-this is a test
 Get all ad groups
 Label all adgroups
 Convert the ad group names to keywords
