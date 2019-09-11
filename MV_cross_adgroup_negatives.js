@@ -206,8 +206,22 @@ function pushNegativesToAds() {
           
           // check if negative is short tail
           var cleanNeg = negative.replace(/(\+|\*)/g,'');
-          var shortTail = name.match(new RegExp(cleanNeg));
+          var cleanName = name.replace(/(\w+\#\w+ - )/g,'');
+
+          // check if negative words are in adgroup name
+          // in any order
+          var CleanNegRegEx = '^';        
+          var cleanNegs = cleanNeg.split(' ');
+          for (var i = 0; i < cleanNegs.lenght; i++){
+            var neg = cleanNegs[i];
+            CleanNegRegEx += '(?=.*\b' + neg + '\b)';
+          }
+          CleanNegRegEx += '.*$';
           
+          var shortTail = name.match(new RegExp(CleanNegRegEx));
+          
+          // if negative keywords in adgroup then don't exclude
+          // if they aren't found add negative
           if (shortTail == null){
             appendARow(adgroup.getCampaign().getName(), adgroup.getName(), negative);
             adgroup.createNegativeKeyword(negative);          
@@ -222,3 +236,7 @@ function pushNegativesToAds() {
   }
 
 }
+
+
+
+
