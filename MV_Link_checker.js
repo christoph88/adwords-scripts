@@ -1,4 +1,4 @@
-// Copyright 2015, Google Inc. All Rights Reserved.
+// Copyright 2016, Google Inc. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,19 +13,21 @@
 // limitations under the License.
 
 /**
- * @name Link Checker - Manager Accounts
+ * @name Link Checker
  *
  * @overview The Link Checker script iterates through the ads, keywords, and
- *     sitelinks in your manager account hierarchy and makes sure their URLs
- *     do not produce "Page not found" or other types of error responses. See
- *     https://developers.google.com/adwords/scripts/docs/solutions/mccapp-link-checker
+ *     sitelinks in your account and makes sure their URLs do not produce "Page
+ *     not found" or other types of error responses. See
+ *     https://developers.google.com/google-ads/scripts/docs/solutions/link-checker
  *     for more details.
  *
- * @author AdWords Scripts Team [adwords-scripts@googlegroups.com]
+ * @author Google Ads Scripts Team [adwords-scripts@googlegroups.com]
  *
- * @version 2.1
+ * @version 2.2
  *
  * @changelog
+ * - version 2.2
+ *   - Added support for failure strings and custom validation functions.
  * - version 2.1
  *   - Added expansion of conditional ValueTrack parameters (e.g. ifmobile).
  *   - Added expanded text ad and other ad format support.
@@ -35,40 +37,30 @@
  *   - Allow the custom tracking label to include spaces.
  * - version 2.0.1
  *   - Catch and output all UrlFetchApp exceptions.
- *   - Completely revised the script to work on larger accounts and hierarchies.
- * - version 1.3
- *   - Enhanced to include ad group sitelinks.
- *   - Updated to track completion across runs and send at most one email
- *     per day.
+ * - version 2.0
+ *   - Completely revised the script to work on larger accounts.
+ *   - Check URLs in campaign and ad group sitelinks.
  * - version 1.2
- *   - Remove label flushing code from the script.
- * - version 1.1
- *   - Remove some debug code.
- * - version 1.0
  *   - Released initial version.
  */
 
 var CONFIG = {
   // URL of the spreadsheet template.
-  // This should be a copy of https://goo.gl/8YLeMj.
-  SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1sIQWdeBvkHw6ypnrDo7uqEp7yB8JxGh-WIGM7Rkxq-c/edit#gid=1280565513',
+  // This should be a copy of https://docs.google.com/spreadsheets/d/1iO1iEGwlbe510qo3Li-j4KgyCeVSmodxU6J7M756ppk/copy.
+  SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1vYe3evIOx6hyJBvLjUm2PzOymEl3uO3NUo85pwrqqR8/edit#gid=1280565513',
 
   // Array of addresses to be alerted via email if issues are found.
   RECIPIENT_EMAILS: [
-    'christoph.geypen@groupepvcp.com'
+    'christoph.geypen@unleashed.be'
   ],
 
   // Label to use when a link has been checked.
   LABEL: 'LinkChecker_Done',
 
-  // A list of ManagedAccountSelector conditions to restrict the population
-  // of child accounts that will be processed. Leave blank or comment out
-  // to include all child accounts.
-  ACCOUNT_CONDITIONS: ["LabelNames CONTAINS 'BE'"],
-
-  // Number of milliseconds to sleep after each URL request. Use this throttle
-  // to reduce the load that the script imposes on your web server(s).
-  THROTTLE: 0,
+  // Number of milliseconds to sleep after each URL request. If your URLs are
+  // all on one or a few domains, use this throttle to reduce the load that the
+  // script imposes on your web server(s).
+  THROTTLE: 100,
 
   // Number of seconds before timeout that the script should stop checking URLs
   // to make sure it has time to output its findings.
@@ -76,17 +68,79 @@ var CONFIG = {
 };
 
 /**
+ * Performs custom validation on a URL, with access to details such as the URL,
+ * the response from the server, configuration options and entity Details.
+ *
+ * To use, the "Use Custom Validation" option in the configuration spreadsheet
+ * must be set to "Yes", and your custom validation code implemented within the
+ * below function.
+ *
+ * See the documentation for this solution for further details.
+ *
+ * @param {string} url The URL being checked.
+ * @param {!HTTPResponse} response The response object for the request.
+ * @param {!Object} options Configuration options.
+ * @param {!Object} entityDetails Details of the associated Ad / Keywords etc.
+ * @return {boolean} Return true if the URL and response are deemed valid.
+ */
+function isValidResponse(url, response, options, entityDetails) {
+  /*
+     Some examples of data that can be used in determining the validity of this
+     URL. This is not exhaustive and there are further properties available.
+  */
+  
+  var urlLang = 'BE' + url.match(/\/(nl|fr)\//g)[0].replace(/\//g,'').toUpperCase();
+  Logger.log(urlLang);
+
+  // The HTTP status code, e.g. 200, 404
+  // var responseCode = response.getResponseCode();
+
+  // The HTTP response body, e.g. HTML for web pages:
+  // var responseText = response.getContentText();
+
+  // The failure strings from the configuration spreadsheet, as an array:
+  // var failureStrings = options.failureStrings;
+
+  // The type of the entity associated with the URL, e.g. Ad, Keyword, Sitelink.
+  // var entityType = entityDetails.entityType;
+
+  // The campaign name
+  var campaignName = entityDetails.campaign;
+  
+  if (campaignName.match(urlLang) == null) {
+    return false;
+  }
+
+  // The ad group name, if applicable
+  // var adGroupName = entityDetails.adGroup;
+
+  // The ad text, if applicable
+  // var adText = entityDetails.ad;
+
+  // The keyword text, if applicable
+  // var keywordText = entityDetails.keyword;
+
+  // The sitelink link text, if applicable
+  // var sitelinkText = entityDetails.sitelink;
+
+  /*
+     Remove comments and insert custom logic to determine whether this URL and
+     response are valid, using the data obtained above.
+
+     If valid, return true. If invalid, return false.
+  */
+
+  // Placeholder implementation treats all URLs as valid
+  return true;
+}
+
+/**
  * Parameters controlling the script's behavior after hitting a UrlFetchApp
  * QPS quota limit.
  */
 var QUOTA_CONFIG = {
-  // Initial number of milliseconds to sleep.
   INIT_SLEEP_TIME: 250,
-
-  // Multiplicative factor to increase sleep time by on each retry.
   BACKOFF_FACTOR: 2,
-
-  // Maximum number of tries for a single URL.
   MAX_TRIES: 5
 };
 
@@ -114,6 +168,7 @@ var NAMES = {
   EMAIL_EACH_RUN: 'emailEachRun',
   EMAIL_NON_ERRORS: 'emailNonErrors',
   EMAIL_ON_COMPLETION: 'emailOnCompletion',
+  FAILURE_STRINGS: 'failureStrings',
   SAVE_ALL_URLS: 'saveAllUrls',
   FREQUENCY: 'frequency',
   DATE_STARTED: 'dateStarted',
@@ -121,13 +176,15 @@ var NAMES = {
   DATE_EMAILED: 'dateEmailed',
   NUM_ERRORS: 'numErrors',
   RESULT_HEADERS: 'resultHeaders',
-  ARCHIVE_HEADERS: 'archiveHeaders'
+  ARCHIVE_HEADERS: 'archiveHeaders',
+  USE_SIMPLE_FAILURE_STRINGS: 'useSimpleFailureStrings',
+  USE_CUSTOM_VALIDATION: 'useCustomValidation'
 };
 
 function main() {
   var spreadsheet = validateAndGetSpreadsheet(CONFIG.SPREADSHEET_URL);
-  validateEmailAddresses();
-  spreadsheet.setSpreadsheetTimeZone(AdWordsApp.currentAccount().getTimeZone());
+  validateEmailAddresses(CONFIG.RECIPIENT_EMAILS);
+  spreadsheet.setSpreadsheetTimeZone(AdsApp.currentAccount().getTimeZone());
 
   var options = loadOptions(spreadsheet);
   var status = loadStatus(spreadsheet);
@@ -144,113 +201,11 @@ function main() {
     return;
   } else {
     // Enough time has passed since the last analysis to start a new one.
-    removeLabelsInAccounts();
-    removeAccountLabels([CONFIG.LABEL]);
+    removeLabels([CONFIG.LABEL]);
     startNewAnalysis(spreadsheet);
   }
 
-  ensureAccountLabels([CONFIG.LABEL]);
-
-  // Get up to 50 accounts that have not yet had all of their URLs checked.
-  var accountSelector = getAccounts(false).withLimit(50);
-  if (accountSelector.get().hasNext()) {
-    accountSelector.executeInParallel('processAccount', 'processResults',
-                                      JSON.stringify(options));
-  } else {
-    processResults([]);
-  }
-}
-
-/**
- * Retrieves all accounts that either have had their URLs checked or need to
- * have their URLs checked.
- *
- * @param {boolean} isChecked True to get accounts that have been checked
- *     already, false to get accounts that have not have been checked already.
- *     Ignored if the label does not exist.
- * @return {Object} An account selector.
- */
-function getAccounts(isChecked) {
-  var accountSelector = MccApp.accounts();
-
-  if (getAccountLabel(CONFIG.LABEL)) {
-    accountSelector = accountSelector.
-      withCondition('LabelNames ' +
-                    (isChecked ? 'CONTAINS' : 'DOES_NOT_CONTAIN') +
-                     ' "' + CONFIG.LABEL + '"');
-  }
-
-  if (CONFIG.ACCOUNT_CONDITIONS) {
-    for (var i = 0; i < CONFIG.ACCOUNT_CONDITIONS.length; i++) {
-      accountSelector =
-          accountSelector.withCondition(CONFIG.ACCOUNT_CONDITIONS[i]);
-    }
-  }
-
-  return accountSelector;
-}
-
-/**
- * Removes the tracking in each account that was previously analyzed, thereby
- * clearing that account for a new analysis.
- */
-function removeLabelsInAccounts() {
-  var managerAccount = AdWordsApp.currentAccount();
-  var accounts = getAccounts(true).get();
-
-  while (accounts.hasNext()) {
-    MccApp.select(accounts.next());
-    removeLabels([CONFIG.LABEL]);
-  }
-
-  MccApp.select(managerAccount);
-}
-
-/**
- * Performs the link checking analysis on the current account.
- *
- * @param {string} options Options from the spreadsheet as JSON.
- * @return {string} JSON stringified results of the analysis.
- */
-function processAccount(options) {
-  return JSON.stringify(analyzeAccount(JSON.parse(options)));
-}
-
-/**
- * Consolidates results from each account and outputs them.
- *
- * @param {Array.<Object>} executionResults A list of ExecutionResult objects.
- */
-function processResults(executionResults) {
-  var spreadsheet = SpreadsheetApp.openByUrl(CONFIG.SPREADSHEET_URL);
-  var options = loadOptions(spreadsheet);
-  var results = {
-    urlChecks: [],
-    didComplete: true
-  };
-
-  for (var i = 0; i < executionResults.length; i++) {
-    if (!executionResults[i].getError()) {
-      var accountResult = JSON.parse(executionResults[i].getReturnValue());
-      results.urlChecks = results.urlChecks.concat(accountResult.urlChecks);
-      results.didComplete = results.didComplete && accountResult.didComplete;
-
-      if (accountResult.didComplete) {
-        MccApp.accounts().withIds([executionResults[i].getCustomerId()]).get().
-            next().applyLabel(CONFIG.LABEL);
-      }
-    } else {
-      Logger.log('Processing for ' + executionResults[i].getCustomerId() +
-          ' failed.');
-    }
-  }
-
-  // The entire analysis is not complete if there are any accounts that have
-  // not been labeled (i.e., the account was not started, or not all URLs in
-  // the account have been checked).
-  results.didComplete = results.didComplete &&
-      !getAccounts(false).get().hasNext();
-
+  var results = analyzeAccount(options);
   outputResults(results, options);
 }
 
@@ -387,7 +342,9 @@ function loadOptions(spreadsheet) {
        NAMES.CHECK_PAUSED_KEYWORDS, NAMES.CHECK_PAUSED_SITELINKS,
        NAMES.VALID_CODES, NAMES.EMAIL_EACH_RUN,
        NAMES.EMAIL_NON_ERRORS, NAMES.EMAIL_ON_COMPLETION,
-       NAMES.SAVE_ALL_URLS, NAMES.FREQUENCY]);
+       NAMES.SAVE_ALL_URLS, NAMES.FREQUENCY,
+       NAMES.FAILURE_STRINGS, NAMES.USE_SIMPLE_FAILURE_STRINGS,
+       NAMES.USE_CUSTOM_VALIDATION]);
 }
 
 /**
@@ -547,12 +504,12 @@ function getAlreadyCheckedUrls(options) {
   };
 
   if (options.checkAdUrls) {
-    addToMap(getUrlsBySelector(AdWordsApp.ads().
+    addToMap(getUrlsBySelector(AdsApp.ads().
                                withCondition(labelCondition(true))));
   }
 
   if (options.checkKeywordUrls) {
-    addToMap(getUrlsBySelector(AdWordsApp.keywords().
+    addToMap(getUrlsBySelector(AdsApp.keywords().
                                withCondition(labelCondition(true))));
   }
 
@@ -583,8 +540,8 @@ function getAlreadyCheckedSitelinkUrls() {
     }
   };
 
-  addSitelinkUrls(AdWordsApp.campaigns());
-  addSitelinkUrls(AdWordsApp.adGroups());
+  addSitelinkUrls(AdsApp.campaigns());
+  addSitelinkUrls(AdsApp.adGroups());
 
   return urls;
 }
@@ -648,14 +605,14 @@ function checkUrls(checkedUrls, urlChecks, options) {
 
   if (options.checkAdUrls) {
     didComplete = didComplete && checkUrlsBySelector(checkedUrls, urlChecks,
-        addConditions(AdWordsApp.ads().withCondition('CreativeFinalUrls != ""'),
-                      options.checkPausedAds));
+        addConditions(AdsApp.ads().withCondition('CreativeFinalUrls != ""'),
+                      options.checkPausedAds), options);
   }
 
   if (options.checkKeywordUrls) {
     didComplete = didComplete && checkUrlsBySelector(checkedUrls, urlChecks,
-        addConditions(AdWordsApp.keywords().withCondition('FinalUrls != ""'),
-                      options.checkPausedKeywords));
+        addConditions(AdsApp.keywords().withCondition('FinalUrls != ""'),
+                      options.checkPausedKeywords), options);
   }
 
   if (options.checkSitelinkUrls) {
@@ -677,10 +634,11 @@ function checkUrls(checkedUrls, urlChecks, options) {
  *     check will be inserted.
  * @param {Object} selector The selector specifying the entities to use.
  *     The entities should be of a type that has a urls() method.
+ * @param {!Object} options Dictionary of options.
  * @return {boolean} True if all URLs were checked.
  */
-function checkUrlsBySelector(checkedUrls, urlChecks, selector) {
-  var customerId = AdWordsApp.currentAccount().getCustomerId();
+function checkUrlsBySelector(checkedUrls, urlChecks, selector, options) {
+  var customerId = AdsApp.currentAccount().getCustomerId();
   var iterator = selector.get();
   var entities = [];
 
@@ -698,14 +656,8 @@ function checkUrlsBySelector(checkedUrls, urlChecks, selector) {
         continue;
       }
 
-      var responseCode = requestUrl(expandedUrl);
       var entityType = entity.getEntityType();
-
-      urlChecks.push({
-        customerId: customerId,
-        timestamp: new Date(),
-        url: expandedUrl,
-        responseCode: responseCode,
+      var entityDetails = {
         entityType: entityType,
         campaign: entity.getCampaign ? entity.getCampaign().getName() : '',
         adGroup: entity.getAdGroup ? entity.getAdGroup().getName() : '',
@@ -713,6 +665,21 @@ function checkUrlsBySelector(checkedUrls, urlChecks, selector) {
         keyword: entityType == 'Keyword' ? entity.getText() : '',
         sitelink: entityType.indexOf('Sitelink') != -1 ?
             entity.getLinkText() : ''
+      };
+
+      var responseCode = requestUrl(expandedUrl, options, entityDetails);
+
+      urlChecks.push({
+        customerId: customerId,
+        timestamp: new Date(),
+        url: expandedUrl,
+        responseCode: responseCode,
+        entityType: entityDetails.entityType,
+        campaign: entityDetails.campaign,
+        adGroup: entityDetails.adGroup,
+        ad: entityDetails.ad,
+        keyword: entityDetails.keyword,
+        sitelink: entityDetails.sitelink
       });
 
       checkedUrls[expandedUrl] = true;
@@ -802,7 +769,7 @@ function checkSitelinkUrls(checkedUrls, urlChecks, options) {
 
       if (sitelinks.get().hasNext()) {
         didComplete = didComplete &&
-            checkUrlsBySelector(checkedUrls, urlChecks, sitelinks);
+            checkUrlsBySelector(checkedUrls, urlChecks, sitelinks, options);
         entity.applyLabel(CONFIG.LABEL);
         checkTimeout();
       }
@@ -819,9 +786,9 @@ function checkSitelinkUrls(checkedUrls, urlChecks, options) {
   }
 
   var predicate = ' IN [' + statuses.join(',') + ']';
-  checkSitelinkUrls(AdWordsApp.campaigns().
+  checkSitelinkUrls(AdsApp.campaigns().
                     withCondition('Status' + predicate));
-  checkSitelinkUrls(AdWordsApp.adGroups().
+  checkSitelinkUrls(AdsApp.adGroups().
                     withCondition('Status' + predicate).
                     withCondition('CampaignStatus' + predicate));
 
@@ -925,10 +892,12 @@ function urlModifierReplace(mods, mod1, mod2, url) {
  * quota limit was reached.
  *
  * @param {string} url The URL to test.
+ * @param {!Object} options The options loaded from the configuration sheet.
+ * @param {!Object} entityDetails Details of the entity, e.g. type, name etc.
  * @return {number|string} The response code received when requesting the URL,
  *     or an error message.
  */
-function requestUrl(url) {
+function requestUrl(url, options, entityDetails) {
   var responseCode;
   var sleepTime = QUOTA_CONFIG.INIT_SLEEP_TIME;
   var numTries = 0;
@@ -937,8 +906,18 @@ function requestUrl(url) {
     try {
       // If UrlFetchApp.fetch() throws an exception, responseCode will remain
       // undefined.
-      responseCode =
-        UrlFetchApp.fetch(url, {muteHttpExceptions: true}).getResponseCode();
+      var response = UrlFetchApp.fetch(url, {muteHttpExceptions: true});
+      responseCode = response.getResponseCode();
+
+      if (options.validCodes.indexOf(responseCode) !== -1) {
+        if (options.useSimpleFailureStrings &&
+            bodyContainsFailureStrings(response, options.failureStrings)) {
+          responseCode = 'Failure string detected';
+        } else if (options.useCustomValidation && !isValidResponse(url,
+            response, options, entityDetails)) {
+          responseCode = "Custom validation failed";
+        }
+      }
 
       if (CONFIG.THROTTLE > 0) {
         Utilities.sleep(CONFIG.THROTTLE);
@@ -966,10 +945,28 @@ function requestUrl(url) {
 }
 
 /**
+ * Searches the body of a HTTP response for any occurrence of a "failure string"
+ * as defined in the configuration spreadsheet. For example, "Out of stock".
+ *
+ * @param {!HTTPResponse} response The response from the UrlFetchApp request.
+ * @param {!Array.<string>} failureStrings A list of failure strings.
+ * @return {boolean} Returns true if at least one failure string found.
+ */
+function bodyContainsFailureStrings(response, failureStrings) {
+  var contentText = response.getContentText() || '';
+  // Whilst searching for each separate failure string across the body text
+  // separately may not be the most efficient, it is simple, and tests suggest
+  // it is not overly poor performance-wise.
+  return failureStrings.some(function(failureString) {
+    return contentText.indexOf(failureString) !== -1;
+  });
+}
+
+/**
  * Throws an exception if the script is close to timing out.
  */
 function checkTimeout() {
-  if (AdWordsApp.getExecutionInfo().getRemainingTime() <
+  if (AdsApp.getExecutionInfo().getRemainingTime() <
       CONFIG.TIMEOUT_BUFFER) {
     throw EXCEPTIONS.TIMEOUT;
   }
@@ -1024,17 +1021,7 @@ function getEntityByName(selector, name) {
  * @return {Object} The Label object, if it exists, or null otherwise.
  */
 function getLabel(labelName) {
-  return getEntityByName(AdWordsApp.labels(), labelName);
-}
-
-/**
- * Retrieves an AccountLabel object by name.
- *
- * @param {string} labelName The label name to retrieve.
- * @return {Object} The AccountLabel object, if it exists, or null otherwise.
- */
-function getAccountLabel(labelName) {
-  return getEntityByName(MccApp.accountLabels(), labelName);
+  return getEntityByName(AdsApp.labels(), labelName);
 }
 
 /**
@@ -1050,35 +1037,11 @@ function ensureLabels(labelNames) {
     var label = getLabel(labelName);
 
     if (!label) {
-      if (!AdWordsApp.getExecutionInfo().isPreview()) {
-        AdWordsApp.createLabel(labelName);
+      if (!AdsApp.getExecutionInfo().isPreview()) {
+        AdsApp.createLabel(labelName);
       } else {
         throw 'Label ' + labelName + ' is missing and cannot be created in ' +
             'preview mode. Please run the script or create the label manually.';
-      }
-    }
-  }
-}
-
-/**
- * Checks that the account has all provided account labels and creates any that
- * are missing. Since labels cannot be created in preview mode, throws an
- * exception if a label is missing.
- *
- * @param {Array.<string>} labelNames An array of label names.
- */
-function ensureAccountLabels(labelNames) {
-  for (var i = 0; i < labelNames.length; i++) {
-    var labelName = labelNames[i];
-    var label = getAccountLabel(labelName);
-
-    if (!label) {
-      if (!AdWordsApp.getExecutionInfo().isPreview()) {
-        MccApp.createAccountLabel(labelName);
-      } else {
-        throw 'Account label ' + labelName + ' is missing and cannot be ' +
-            'created in preview mode. Please run the script or create the ' +
-            'label manually.';
       }
     }
   }
@@ -1091,34 +1054,13 @@ function ensureAccountLabels(labelNames) {
  * @param {Array.<string>} labelNames An array of label names.
  */
 function removeLabels(labelNames) {
-  if (AdWordsApp.getExecutionInfo().isPreview()) {
+  if (AdsApp.getExecutionInfo().isPreview()) {
     throw 'Cannot remove labels in preview mode. Please run the script or ' +
         'remove the labels manually.';
   }
 
   for (var i = 0; i < labelNames.length; i++) {
     var label = getLabel(labelNames[i]);
-
-    if (label) {
-      label.remove();
-    }
-  }
-}
-
-/**
- * Removes all provided account labels from the account. Since labels cannot be
- * removed in preview mode, throws an exception in preview mode.
- *
- * @param {Array.<string>} labelNames An array of label names.
- */
-function removeAccountLabels(labelNames) {
-  if (AdWordsApp.getExecutionInfo().isPreview()) {
-    throw 'Cannot remove account labels in preview mode. Please run the ' +
-        'script or remove the labels manually.';
-  }
-
-  for (var i = 0; i < labelNames.length; i++) {
-    var label = getAccountLabel(labelNames[i]);
 
     if (label) {
       label.remove();
@@ -1143,15 +1085,18 @@ function validateAndGetSpreadsheet(spreadsheeturl) {
 }
 
 /**
- * Validates the provided email address to make sure it's not the default.
+ * Validates the provided email addresses to make sure it's not the default.
  * Throws a descriptive error message if validation fails.
  *
+ * @param {Array.<string>} recipientEmails The list of email adresses.
  * @throws {Error} If the list of email addresses is still the default
  */
-function validateEmailAddresses() {
-  if (CONFIG.RECIPIENT_EMAILS &&
-      CONFIG.RECIPIENT_EMAILS[0] == 'YOUR_EMAIL_HERE') {
+function validateEmailAddresses(recipientEmails) {
+  if (recipientEmails &&
+      recipientEmails[0] == 'YOUR_EMAIL_HERE') {
     throw new Error('Please either specify a valid email address or clear' +
         ' the RECIPIENT_EMAILS field.');
   }
 }
+
+    
