@@ -49,6 +49,9 @@ function getAdGroups() {
 
 }
 
+function escapeRegExp(text) {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+}
 
 function adGroupKeywordsWhere(adGroupName) {
   var cleanName = adGroupName.replace(/(\w+\#\w+ - |- )/g,'');
@@ -62,7 +65,7 @@ function adGroupKeywordsWhere(adGroupName) {
   var i;
   for (i = 0; i < words.length; i++) {
     var word = words[i];
-    where += "NOT REGEXP_MATCH(AdGroupName, '"+word+"')";
+    where += "NOT REGEXP_MATCH(AdGroupName, '" + escapeRegExp(word) +"')";
     if (i != (words.length-1)) {
       where += " AND ";    
     }
@@ -116,3 +119,4 @@ function queryForKeywords(adGroupName, adgroup) {
   // apply label to adgroup after keywords are added
   adgroup.applyLabel(labelName);
 }
+
