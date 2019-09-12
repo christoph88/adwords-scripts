@@ -65,7 +65,7 @@ function adGroupKeywordsWhere(adGroupName) {
   var i;
   for (i = 0; i < words.length; i++) {
     var word = words[i];
-    where += "NOT REGEXP_MATCH(AdGroupName, '" + escapeRegExp(word) +"')";
+    where += "NOT REGEXP_MATCH(AdGroupName, '" + removeRegExp(word) +"')";
     if (i != (words.length-1)) {
       where += " AND ";    
     }
@@ -119,4 +119,5 @@ function queryForKeywords(adGroupName, adgroup) {
   // apply label to adgroup after keywords are added
   adgroup.applyLabel(labelName);
 }
+
 
