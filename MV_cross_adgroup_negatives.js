@@ -49,8 +49,8 @@ function getAdGroups() {
 
 }
 
-function escapeRegExp(text) {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+function removeRegExp(text) {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '');
 }
 
 function adGroupKeywordsWhere(adGroupName) {
