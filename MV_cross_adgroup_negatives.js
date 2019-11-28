@@ -1,4 +1,7 @@
 // rerun after account structure changes - keywords, adgroups, campaign
+// do this by removing following label from the ad-groups
+// script creates a negative list based on the base keyword in the adgroup name.
+// alls base names are set as negative if not matches with the base name of current adgroup.
 var labelName = 'cross-adgroup-negatives-added';
 
 function main() {
@@ -34,7 +37,7 @@ function getAdGroups() {
     var adgroupIterator = AdsApp.adGroups()
       .withCondition('AdGroupStatus != REMOVED')    
       .withCondition('CampaignStatus != REMOVED')
-    //.withCondition('CampaignName CONTAINS "_Search_"'  )
+      .withCondition('CampaignName CONTAINS "_Search_"'  )
       .withCondition("LabelNames CONTAINS_NONE ['"+ labelName +"']")
       .get();
   } catch(err) {
@@ -85,6 +88,7 @@ function adGroupKeywordsWhere(adGroupName) {
   var cleanName = adGroupName.replace(/(\w+\#\w+ - |- )/g,'');
 
   // check if negative words are in adgroup name
+  // select all ad groups where the negative words are NOT in the ad group name
   // in any order
   var where = '';        
   var words = cleanName.split(' ');
@@ -138,6 +142,10 @@ function queryForKeywords(adGroupName, adgroup) {
 
         var negative = value.replace(/\w+#\w+ - /g,'+').replace(/( - | )/g,' +');
         //Logger.log(negative);
+        //
+        //
+        //
+        // enable this to create the negative keyword
         adgroup.createNegativeKeyword(negative);
       }
       //Logger.log(values.join(','));
