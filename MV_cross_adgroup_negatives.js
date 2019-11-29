@@ -1,14 +1,18 @@
 // rerun after account structure changes - keywords, adgroups, campaign
 // do this by removing following label from the ad-groups
-// script creates a negative list based on the base keyword in the adgroup name.
+// script creates negative keywords based on the adgroup name of excluded adgroups.
+// excluded adgroups 1= current adgroup
+// excluded adgroups = (current adgroup minus the last word) > group on that string
 // alls base names are set as negative if not matches with the base name of current adgroup.
 var labelName = 'cross-adgroup-negatives-added';
 
 function main() {
-  getAdGroups()
+  getAdGroups();
 }
 
-function removeNegativeKeywordsFromAdGroups() {
+
+
+function removeNegativeKeywordsFromAdGroup(id) {
   // If you have multiple ad groups with the same name, this snippet will
   // pick an arbitrary matching ad group each time. In such cases, just
   // filter on the campaign name as well:
@@ -16,11 +20,13 @@ function removeNegativeKeywordsFromAdGroups() {
   // AdsApp.adGroups()
   //     .withCondition('Name = "INSERT_ADGROUP_NAME_HERE"')
   //     .withCondition('CampaignName = "INSERT_CAMPAIGN_NAME_HERE"')
-  Logger.log('removing current negatives from all AdGroups');
+  
   var adGroupIterator = AdsApp.adGroups()
+      .withIds(id)
       .get();
   if (adGroupIterator.hasNext()) {
     var adGroup = adGroupIterator.next();
+    Logger.log('removing current negatives from ' + adGroup.getName());
     var negativeKeywordIterator = adGroup.negativeKeywords().get();
     while (negativeKeywordIterator.hasNext()) {
       var negativeKeyword = negativeKeywordIterator.next();
@@ -48,7 +54,6 @@ function getAdGroups() {
     // do the query again
     
     Logger.log(err);
-    removeNegativeKeywordsFromAdGroups()
     AdsApp.createLabel(labelName, 'These adgroups have been labelled by the cross adgroup negatives script.', 'grey');
 
     var adgroupIterator = AdsApp.adGroups()
@@ -71,10 +76,21 @@ function getAdGroups() {
   if (adgroupIterator.hasNext()) {
     while (adgroupIterator.hasNext()) {
       var adgroup = adgroupIterator.next();
+      
+
+      
       Logger.log("======================================================");
       Logger.log(adgroup.getName());
       Logger.log("======================================================");
+      
+      // remove current negatives
+      removeNegativeKeywordsFromAdGroup([adgroup.getId()]);
+      
+      // add negatives to the appropriate ad groups
       queryForKeywords(adgroup.getName(), adgroup);
+      
+      // apply label to adgroup after keywords are added
+      adgroup.applyLabel(labelName);
     }
   }
 
@@ -82,29 +98,6 @@ function getAdGroups() {
 
 function removeRegExp(text) {
   return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '');
-}
-
-function adGroupKeywordsWhere(adGroupName) {
-  var cleanName = adGroupName.replace(/(\w+\#\w+ - |- )/g,'');
-
-  // check if negative words are in adgroup name
-  // select all ad groups where the negative words are NOT in the ad group name
-  // in any order
-  var where = '';        
-  var words = cleanName.split(' ');
-  Logger.log(words);
-
-  var i;
-  for (i = 0; i < words.length; i++) {
-    var word = words[i];
-    where += "NOT REGEXP_MATCH(lower(AdGroupName), '" + removeRegExp(word).toLowerCase() +"')";
-    if (i != (words.length-1)) {
-      where += " AND ";    
-    }
-  }
-
-  return where;
-
 }
 
 function queryForKeywords(adGroupName, adgroup) {
@@ -115,24 +108,33 @@ function queryForKeywords(adGroupName, adgroup) {
   var dataSetId = 'google_ads';
   var tableId = 'ADGROUP_PERFORMANCE_REPORT';
 
-  var fullTableName = projectId + ':' + dataSetId + '.' + tableId;
+  var fullTableName = '`' + projectId + '.' + dataSetId + '.' + tableId + '`';
 
-  var where = adGroupKeywordsWhere(adGroupName);
-  Logger.log('Starting query');
-  Logger.log(where);
+  Logger.log('Starting query for ' + adGroupName);
 
+  var adgroupWithoutLastWord = adGroupName.match(/\w+#\w+ - (.*) - .*$/) ? " = '" + adGroupName.match(/\w+#\w+ - (.*) - .*$/)[1] + "'" : ' is null';
+  // only exclude adgroups with the same or longer length
   var queryRequest = BigQuery.newQueryRequest();
-  // it cannot match > adjust where clause
+  queryRequest.useLegacySql = false;
+  
   // all keywords in this query will be added
-  queryRequest.query = "SELECT AdGroupName \
-  from [" + fullTableName + "] WHERE \
-  CampaignName LIKE '%_Search_%' AND " + where + "\
-  GROUP BY AdGroupName;";
+  queryRequest.query = "SELECT \
+  AdGroupName \
+  from " + fullTableName + " \
+  WHERE \
+  CampaignName LIKE '%_Search_%' \
+  AND regexp_extract(AdGroupName ,r'\\w+#\\w+ - (.*) - .*$') " + adgroupWithoutLastWord +"\
+  AND AdGroupName != '" + adGroupName + "'\
+  GROUP BY regexp_extract(AdGroupName ,r'\\w+#\\w+ - (.*) - .*$'), AdGroupName;";
+  
+  //Logger.log(queryRequest.query);
+  
   var query = BigQuery.Jobs.query(queryRequest, projectId);
+  
 
   // create negatives in adgroup
-  // create label for processed adgroups
   if (query.jobComplete) {
+    Logger.log(query.rows);
     for (var i = 0; i < query.rows.length; i++) {
       var row = query.rows[i];
       var values = [];
@@ -140,6 +142,8 @@ function queryForKeywords(adGroupName, adgroup) {
         var value = row.f[j].v;
         values.push(value);
 
+        // negative keyword is generated based on the non matching adgroup names
+        // modified broad match is created
         var negative = value.replace(/\w+#\w+ - /g,'+').replace(/( - | )/g,' +');
         //Logger.log(negative);
         //
@@ -148,12 +152,9 @@ function queryForKeywords(adGroupName, adgroup) {
         // enable this to create the negative keyword
         adgroup.createNegativeKeyword(negative);
       }
-      //Logger.log(values.join(','));
+      Logger.log(values.join(','));
     }
   }
 
-  // apply label to adgroup after keywords are added
-  adgroup.applyLabel(labelName);
 }
-
 
