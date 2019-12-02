@@ -127,13 +127,14 @@ function queryForKeywords(adGroupName, adgroup) {
   AND AdGroupName != '" + adGroupName + "'\
   GROUP BY regexp_extract(AdGroupName ,r'\\w+#\\w+ - (.*) - .*$'), AdGroupName;";
   
-  //Logger.log(queryRequest.query);
+  Logger.log(queryRequest.query);
+
   
   var query = BigQuery.Jobs.query(queryRequest, projectId);
   
 
   // create negatives in adgroup
-  if (query.jobComplete) {
+  if (query.jobComplete && query.rows) {
     Logger.log(query.rows);
     for (var i = 0; i < query.rows.length; i++) {
       var row = query.rows[i];
@@ -157,4 +158,5 @@ function queryForKeywords(adGroupName, adgroup) {
   }
 
 }
+
 
