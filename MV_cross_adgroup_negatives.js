@@ -112,7 +112,7 @@ function queryForKeywords(adGroupName, adgroup) {
 
   Logger.log('Starting query for ' + adGroupName);
 
-  var adgroupWithoutLastWord = adGroupName.match(/\w+#\w+ - (.*) - .*$/) ? " = '" + adGroupName.match(/\w+#\w+ - (.*) - .*$/)[1] + "'" : ' is null';
+  var adgroupWithoutLastWord = adGroupName.match(/\w+#\w+ - (.*) - .*$/) ? " = '" + adGroupName.match(/\w+#\w+ - (.*) - .*$/)[1] + "'" : " = '" + adGroupName.match(/\w+#\w+ - (.*)$/)[1] + "'";
   // only exclude adgroups with the same or longer length
   var queryRequest = BigQuery.newQueryRequest();
   queryRequest.useLegacySql = false;
