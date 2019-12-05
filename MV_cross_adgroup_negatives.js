@@ -146,6 +146,10 @@ function queryForKeywords(adGroupName, adgroup) {
         // negative keyword is generated based on the non matching adgroup names
         // modified broad match is created
         var negative = value.replace(/\w+#\w+ - /g,'+').replace(/( - | )/g,' +');
+        
+        if (adGroupName.match(/#(comp|test|pric) /)) {
+            negative = '['+ value.replace(/\w+#\w+ - /g,'').replace(/( - )/g,' ') + ']';
+            }
         //Logger.log(negative);
         //
         //
